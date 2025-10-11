@@ -29,7 +29,7 @@ connectDB();
 connectCloudinary();
 
 // ✅ Setup CORS
-const allowedOrigins = ['http://localhost:5174', 'http://localhost:5173'];
+const allowedOrigins = ['https://artisan-tawny.vercel.app', 'https://artisanadmin.vercel.app'];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(express.json());
@@ -49,10 +49,10 @@ app.use('/api/sellers', sellerRouter);
 app.use('/api/review', reviewRouter);
 app.use('/api/messages', messageRouter);
 
-// ✅ Create HTTP server for both Express + Socket.IO
+
 const server = http.createServer(app);
 
-// ✅ Setup Socket.IO
+
 const io = new Server(server, {
   cors: { origin: allowedOrigins, credentials: true },
 });
@@ -60,15 +60,15 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("User connected: " + socket.id);
 
-  // User joins their private room (userId = customer/seller id)
+
   socket.on("joinRoom", (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined their room`);
   });
 
-  // Handle sending message
+  
   socket.on("sendMessage", ({ sender, receiver, content }) => {
-    // Emit to the receiver's room
+   
     io.to(receiver).emit("receiveMessage", { sender, content });
   });
 

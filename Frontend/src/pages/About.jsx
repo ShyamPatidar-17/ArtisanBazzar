@@ -14,7 +14,7 @@ import {
 
 const About = () => {
   return (
-    <div className="bg-orange-50">
+    <div className="bg-amber-50 min-h-screen pt-14 px-4 sm:px-8">
       {/* About Section */}
       <div className="text-2xl text-center pt-10 border-t">
         <Title text1={"ABOUT"} text2={"US"} />

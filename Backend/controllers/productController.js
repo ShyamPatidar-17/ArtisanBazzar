@@ -1,11 +1,22 @@
 // controllers/productController.js
 import productModel from "../models/productModel.js";
+import userModel from "../models/userModel.js";
 import { v2 as cloudinary } from "cloudinary";
+
+import jwt from "jsonwebtoken"
+
+const getUserIdFromToken = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) throw new Error("No token provided");
+  const token = authHeader.split(" ")[1];
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  return decoded.id;
+};
 
 // ✅ ADD PRODUCT
 const addProduct = async (req, res) => {
   try {
-    const { name, price, description, sizes, bestseller, category, subCategory } = req.body;
+    const { name, price, description, sizes, bestseller, category, subCategory,material,region, } = req.body;
 
     if (!name || !price || !description || !sizes || !category || !subCategory) {
       return res.json({ success: false, message: "Please fill all required fields" });
@@ -29,18 +40,32 @@ const addProduct = async (req, res) => {
       )
     );
 
+    const userId = getUserIdFromToken(req);
+
+   const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Pick artisan name: prefer shopName if exists, else user.name
+    const artisanName = user.shopName || user.name;
+
     // ✅ Save product
     const product = new productModel({
       name,
       description,
       price: Number(price),
       sizes: parsedSizes,
+      material,
+      artisan:artisanName,
+      region,
       category,
       subCategory,
       bestseller: String(bestseller).toLowerCase() === "true",
       image: imagesUrl,
+      createdBy: userId,
     });
-
+console.log(product)
     await product.save();
     res.json({ success: true, message: "Product added successfully", product });
   } catch (error) {
@@ -49,6 +74,7 @@ const addProduct = async (req, res) => {
   }
 };
 
+
 // ✅ LIST PRODUCTS
 const listProduct = async (req, res) => {
   try {
@@ -56,6 +82,18 @@ const listProduct = async (req, res) => {
     res.json({ success: true, products });
   } catch (error) {
     res.json({ success: false, message: "Failed to fetch products" });
+  }
+};
+
+
+const getMyProducts = async (req, res) => {
+  try {
+    const userId = getUserIdFromToken(req);
+    const products = await productModel.find({ createdBy: userId });
+    res.json({ success: true, products });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
   }
 };
 
@@ -185,4 +223,59 @@ const productByName = async (req, res) => {
   }
 };
 
-export { addProduct, listProduct, removeProduct, singleProduct, editProduct, productByName };
+
+
+// ✅ PRODUCT BY CATEGORY
+const productByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+
+    // List of allowed categories
+    const allowedCategories = [
+      "Clay", "Wood", "Metal", "Stone", "Textile",
+      "Glass", "Bamboo", "Paper", "Leather", "Other"
+    ];
+
+    if (!allowedCategories.includes(category)) {
+      return res.status(400).json({ success: false, message: "Invalid category" });
+    }
+
+    // Fetch products matching the selected category
+    const products = await productModel.find({ category });
+
+    res.json({ success: true, products });
+  } catch (error) {
+    console.error("Product By Category Error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch products" });
+  }
+};
+
+ const reduceStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body; // quantity to reduce
+
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid quantity" });
+    }
+
+    const product = await productModel.findById(id);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+
+    if (product.stock < quantity) {
+      return res.status(400).json({ success: false, message: "Not enough stock available" });
+    }
+
+    product.stock -= quantity;
+    await product.save();
+
+    res.json({ success: true, stock: product.stock });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to update stock" });
+  }
+};
+
+
+
+export { addProduct, listProduct, removeProduct, singleProduct, editProduct, productByName ,reduceStock, getMyProducts,productByCategory};

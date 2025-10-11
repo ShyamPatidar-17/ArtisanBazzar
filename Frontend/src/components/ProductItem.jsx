@@ -8,7 +8,7 @@ const ProductItem = ({ id, image, name, price }) => {
   return (
     <Link
       to={`/product/${id}`}
-      className="group relative block text-gray-800 cursor-pointer rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300 bg-amber-50"
+
     >
       {/* Product Image */}
       <div className="overflow-hidden">
@@ -24,13 +24,7 @@ const ProductItem = ({ id, image, name, price }) => {
       {/* Product Info */}
       <div className="p-3">
         <p className="text-sm font-semibold text-red-800 group-hover:text-red-600 transition-colors">{name}</p>
-        <p className="text-sm font-bold text-amber-900">{currency} {price}</p>
       </div>
-
-      {/* Add small “Artisan Bazaar” tag */}
-      <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-md shadow-md">
-        Artisan
-      </span>
     </Link>
   );
 };

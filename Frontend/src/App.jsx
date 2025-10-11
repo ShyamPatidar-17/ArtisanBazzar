@@ -1,7 +1,7 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useParams } from "react-router-dom";
 import "./index.css";
-import { assets } from "./assets/assets";
+import { ToastContainer } from "react-toastify";
 
 import Home from "./pages/Home";
 import Collection from "./pages/Collection";
@@ -16,37 +16,53 @@ import Footer from "./components/Footer";
 import Profile from "./pages/Profile";
 import Verify from "./pages/Verify";
 import CategoryPage from "./pages/Category";
-
-// ✅ Auth Pages
+import EditProfile from "./pages/EditProfile";
+import ChangePassword from "./pages/ChangePassword";
 import UserAuth from "./pages/UserAuth";
 import SellerAuth from "./pages/SellerAuth";
+import Sellers from "./pages/Seller";
+import Chat from "./pages/Chat";
 
-export const backendUrl = "http://localhost:4000";
+export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 export const currency = "₹";
+
+
+function ChatWrapper() {
+  const { otherId } = useParams();
+  const userId = localStorage.getItem("userId");
+  return <Chat userId={userId} otherId={otherId} />;
+}
 
 function App() {
   return (
-    <div className="px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/shop" element={<Collection />} />
-        <Route path="/shop/:categorySlug?" element={<Collection />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/product/:productId" element={<Product />} />
-        <Route path="/cart" element={<Cart />} />
-        
-        {/* ✅ Auth Routes */}
-        <Route path="/login" element={<UserAuth />} />
-        <Route path="/seller/login" element={<SellerAuth />} />
-        <Route path="/place-order" element={<PlaceOrder />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/verify" element={<Verify />} />
-        <Route path="/product/:slug" element={<CategoryPage />} />
-      </Routes>
+
+      <div className="flex-grow">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<Collection />} />
+          <Route path="/shop/:categorySlug" element={<Collection />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/product/:productId" element={<Product />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/chat/:otherId" element={<ChatWrapper />} />
+          <Route path="/login" element={<UserAuth />} />
+          <Route path="/seller/login" element={<SellerAuth />} />
+          <Route path="/place-order" element={<PlaceOrder />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/profile/change-password" element={<ChangePassword />} />
+          <Route path="/verify" element={<Verify />} />
+          <Route path="/sellers" element={<Sellers />} />
+          <Route path="/product/:slug" element={<CategoryPage />} />
+        </Routes>
+      </div>
+
       <Footer />
+      <ToastContainer />
     </div>
   );
 }

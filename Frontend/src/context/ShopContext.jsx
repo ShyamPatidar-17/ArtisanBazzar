@@ -6,39 +6,51 @@ import axios from "axios";
 
 export const ShopContext = createContext();
 
-export default function ShopContextProvider(props) {
+export default function ShopContextProvider({ children }) {
   const currency = "₹";
   const delivery_fee = 10;
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [cartItems, setCartItems] = useState({});
   const [products, setProducts] = useState([]);
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(localStorage.getItem("token") || ""); // ✅ restore from localStorage
+  const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
 
-  // ✅ Add to cart
+  // ✅ Login function
+  const login = (newToken, newRole, newUserId) => {
+    localStorage.setItem("token", newToken);
+    localStorage.setItem("role", newRole);
+    localStorage.setItem("userId", newUserId);   // ✅ Save userId
+    setToken(newToken);
+    toast.success("Logged in successfully");
+  };
+
+  // ✅ Logout function
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");           // ✅ Remove userId
+    setToken("");
+    setCartItems({});
+    toast.success("Logged out successfully");
+    navigate("/");
+  };
+  // ---------------- Cart Functions ----------------
   const addToCart = (id, size, color) => {
-  setCartItems((prev) => {
-    const key = `${size || "default"}-${color || "default"}`;
-    const newCart = { ...prev };
+    setCartItems((prev) => {
+      const key = `${size || "default"}-${color || "default"}`;
+      const newCart = { ...prev };
+      if (!newCart[id]) newCart[id] = {};
+      if (!newCart[id][key]) newCart[id][key] = 0;
+      newCart[id][key] += 1;
+      return newCart;
+    });
+  };
 
-    if (!newCart[id]) {
-      newCart[id] = {};
-    }
-
-    if (!newCart[id][key]) {
-      newCart[id][key] = 0;
-    }
-
-    newCart[id][key] += 1;
-
-    return newCart;
-  });
-};
-
-
-  // ✅ Cart count
   const getCartCount = () => {
     let totalCount = 0;
     for (const itemId in cartItems) {
@@ -49,7 +61,6 @@ export default function ShopContextProvider(props) {
     return totalCount;
   };
 
-  // ✅ Update cart qty
   const updateQuantity = async (itemId, size, quantity) => {
     let cartData = structuredClone(cartItems);
     cartData[itemId][size] = quantity;
@@ -60,7 +71,7 @@ export default function ShopContextProvider(props) {
         await axios.post(
           backendUrl + "/api/cart/update",
           { itemId, size, quantity },
-          { headers: { token } }
+          { headers: { Authorization: `Bearer ${token}` } } // ✅ fixed
         );
       } catch (error) {
         console.log(error);
@@ -69,7 +80,6 @@ export default function ShopContextProvider(props) {
     }
   };
 
-  // ✅ Cart total
   const getCartAmount = () => {
     let totalAmount = 0;
     for (const itemId in cartItems) {
@@ -83,7 +93,7 @@ export default function ShopContextProvider(props) {
     return totalAmount;
   };
 
-  // ✅ Fetch products
+  // ---------------- API Calls ----------------
   const getProductData = async () => {
     try {
       const response = await axios.get(backendUrl + "/api/products/list");
@@ -95,16 +105,17 @@ export default function ShopContextProvider(props) {
     } catch (error) {
       toast.error("Error fetching products");
       console.error("Fetch Products Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ Fetch user cart
   const getUserCart = async (token) => {
     try {
       const response = await axios.post(
         backendUrl + "/api/cart/get",
         {},
-        { headers: { token } }
+        { headers: { Authorization: `Bearer ${token}` } } // ✅ fixed
       );
       if (response.data.success) {
         setCartItems(response.data.cartData);
@@ -115,32 +126,67 @@ export default function ShopContextProvider(props) {
     }
   };
 
-  // ✅ Restore token from localStorage
+  // ---------------- Effects ----------------
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      setToken(localStorage.getItem("token"));
-    }
     getProductData();
   }, []);
 
-  // ✅ Whenever token changes, refresh cart
   useEffect(() => {
-    if (token) {
-      getUserCart(token);
-    } else {
-      setCartItems({});
-    }
+    if (token) getUserCart(token);
+    else setCartItems({});
   }, [token]);
 
-  // ✅ Logout
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken("");
-    setCartItems({});
-    toast.success("Logged out successfully");
-    navigate("/");
+
+
+  // ---------------- Messaging Functions ----------------
+
+  // Send a message
+  const sendMessage = async (receiverId, content) => {
+    try {
+      const senderId = localStorage.getItem("userId");
+      const response = await axios.post(
+        backendUrl + "/api/messages",
+        { sender: senderId, receiver: receiverId, content },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error) {
+      toast.error("Failed to send message");
+      console.error("Send Message Error:", error);
+    }
   };
 
+  // Fetch chat between current user and another
+  const getMessages = async (otherId) => {
+    try {
+      const userId = localStorage.getItem("userId");
+      const response = await axios.get(
+        `${backendUrl}/api/messages/${userId}/${otherId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error) {
+      toast.error("Failed to fetch messages");
+      console.error("Get Messages Error:", error);
+    }
+  };
+
+  // Mark messages as read
+  const markMessagesAsRead = async (otherId) => {
+    try {
+      const userId = localStorage.getItem("userId");
+      await axios.post(
+        backendUrl + "/api/messages/read",
+        { userId, otherId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error("Mark Read Error:", error);
+    }
+  };
+
+
+  // ---------------- Context Value ----------------
   const value = {
     products,
     currency,
@@ -159,12 +205,13 @@ export default function ShopContextProvider(props) {
     getCartAmount,
     token,
     setToken,
-    logout, // ✅ Export logout
+    login,
+    logout,
+    loading,
+    sendMessage,
+    getMessages,
+    markMessagesAsRead,
   };
 
-  return (
-    <ShopContext.Provider value={value}>
-      {props.children}
-    </ShopContext.Provider>
-  );
+  return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
 }

@@ -37,7 +37,7 @@ const Featured = () => {
           {categories.map((item, idx) => (
             <Link
               key={idx}
-              to={`/shop`}
+              to={`/shop/${item.slug}`}   // Pass the category slug in the URL
               className="rounded-xl overflow-hidden shadow-lg bg-gray-50 hover:shadow-xl transition-transform transform hover:scale-105"
             >
               <img src={item.img} alt={item.title} className="w-full h-48 object-cover" />
@@ -45,6 +45,7 @@ const Featured = () => {
                 <h3 className="font-semibold text-lg text-orange-800">{item.title}</h3>
               </div>
             </Link>
+
           ))}
         </div>
       </div>

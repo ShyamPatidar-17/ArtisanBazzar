@@ -1,159 +1,186 @@
-import React, { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, User } from "lucide-react";
-import logo from "../assets/logo.png";
+import React, { useState, useContext, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, User, LogIn, LogOut, Store } from "lucide-react"; // icons
 import { ShopContext } from "../context/ShopContext";
+import logo from "../assets/logo.png";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { token, logout } = useContext(ShopContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const menuItems = ["Home", "Shop", "Cart", "About", "Contact", "Sellers"];
 
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+  }, []);
+
   return (
-    <nav className="sticky top-0 z-50 w-full bg-[#fff2e6] text-red-950 shadow-lg">
-      <div className="flex justify-between items-center px-6 py-4">
-        {/* Logo */}
-        <Link
-          to="/"
-          className="flex items-center gap-3 transform transition-transform duration-500 hover:scale-110 hover:animate-bounce"
-        >
+    <nav
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        scrolled
+          ? "bg-white/90 backdrop-blur-lg shadow-md border-b border-gray-200"
+          : "bg-white shadow-sm"
+      }`}
+      style={{ fontFamily: "'Poppins', sans-serif" }}
+    >
+      <div className="flex justify-between items-center px-6 py-3">
+        {/* Logo + Title */}
+        <Link to="/" className="flex items-center gap-3 group">
           <img
             src={logo}
-            alt="Artisan Bazaar Logo"
-            className="w-20 h-20 object-contain rounded-full border-2 border-white shadow-lg hover:shadow-2xl transition-shadow duration-500 animate-pulse"
+            alt="Logo"
+            className="w-14 h-14 object-contain rounded-full transition-transform duration-300 group-hover:rotate-6"
           />
+          <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
+            Artisan Bazaar
+          </h1>
         </Link>
 
-        {/* Desktop Links */}
-        <div className="hidden sm:flex gap-6 items-center">
-          {menuItems.map((item) => (
-            <Link
-              key={item}
-              to={`/${item.toLowerCase() === "home" ? "" : item.toLowerCase()}`}
-              className="relative group text-lg font-semibold transition-transform transform hover:scale-110 hover:text-red-600"
-            >
-              {item}
-              <span className="absolute left-0 -bottom-1 w-0 h-[3px] bg-red-400 rounded-full transition-all duration-500 ease-out group-hover:w-full group-hover:animate-bounce"></span>
-            </Link>
-          ))}
+        {/* Desktop Menu */}
+        <div className="hidden md:flex items-center gap-6">
+          {menuItems.map((item) => {
+            const path =
+              item.toLowerCase() === "home" ? "/" : `/${item.toLowerCase()}`;
+            const isActive = location.pathname === path;
 
-          {token && (
-            <button
-              onClick={() => navigate("/profile")}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold shadow-md transform transition-all hover:scale-110 hover:rotate-3 hover:shadow-xl motion-safe:animate-pulse"
-            >
-              <User size={18} /> Profile
-            </button>
-          )}
+            return (
+              <Link
+                key={item}
+                to={path}
+                className={`relative text-base font-medium transition-all duration-300 ${
+                  isActive
+                    ? "text-blue-600 after:w-full"
+                    : "text-gray-700 hover:text-blue-600 after:w-0"
+                } after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:bg-blue-600 after:transition-all after:duration-300 hover:after:w-full`}
+              >
+                {item}
+              </Link>
+            );
+          })}
 
-          {!token ? (
+          {token ? (
+            <>
+              <button
+                onClick={() => navigate("/profile")}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200"
+              >
+                <User size={18} /> Profile
+              </button>
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200"
+              >
+                <LogOut size={18} /> Logout
+              </button>
+            </>
+          ) : (
             <>
               <Link
                 to="/login"
-                className="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-black font-semibold shadow-md transform transition-all hover:scale-110 hover:rotate-3 hover:shadow-xl motion-safe:animate-bounce"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-800 rounded-lg shadow-md hover:scale-105 transition-transform duration-200"
               >
-                Login
+                <LogIn size={18} /> Login
               </Link>
               <Link
-                to="http://localhost:5173/"
+                to="https://artisanadmin.vercel.app/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white font-semibold shadow-md transform transition-all hover:scale-110 hover:rotate-3 hover:shadow-xl motion-safe:animate-bounce"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200"
               >
-                Seller
+                <Store size={18} /> Seller
               </Link>
             </>
-          ) : (
-            <button
-              onClick={() => logout()}
-              className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold shadow-md transform transition-all hover:scale-110 hover:rotate-3 hover:shadow-xl motion-safe:animate-pulse"
-            >
-              Logout
-            </button>
           )}
         </div>
 
-        {/* Mobile Menu Button */}
+        {/* Mobile Toggle */}
         <button
-          className="sm:hidden text-red-950 transform transition-transform hover:scale-125 hover:rotate-12"
+          className="md:hidden text-gray-700"
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 
-      {/* Mobile Dropdown */}
-      <div
-        className={`sm:hidden bg-[#fff2e6] flex flex-col items-center py-4 gap-4 shadow-lg transition-all duration-700 overflow-hidden ${
-          isOpen ? "max-h-[600px] animate-slide-down" : "max-h-0"
-        }`}
-      >
-        {menuItems.map((item, index) => (
-          <Link
-            key={item}
-            to={`/${item.toLowerCase() === "home" ? "" : item.toLowerCase()}`}
-            onClick={() => setIsOpen(false)}
-            className={`text-lg text-red-950 font-semibold hover:text-red-600 transition-all duration-300 hover:scale-110 hover:rotate-3 animate-bounce delay-${index * 75}`}
-          >
-            {item}
-          </Link>
-        ))}
+      {/* Mobile Menu */}
+      {isOpen && (
+        <div className="md:hidden flex flex-col items-center bg-white/95 backdrop-blur-md border-t py-4 space-y-3 shadow-inner animate-slideDown">
+          {menuItems.map((item) => {
+            const path =
+              item.toLowerCase() === "home" ? "/" : `/${item.toLowerCase()}`;
+            const isActive = location.pathname === path;
 
-        {token && (
-          <button
-            onClick={() => {
-              navigate("/profile");
-              setIsOpen(false);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold shadow-md transform transition-all hover:scale-110 hover:rotate-3 motion-safe:animate-pulse hover:shadow-xl"
-          >
-            <User size={18} /> Profile
-          </button>
-        )}
+            return (
+              <Link
+                key={item}
+                to={path}
+                onClick={() => setIsOpen(false)}
+                className={`text-base font-medium transition-colors ${
+                  isActive
+                    ? "text-blue-600 font-semibold"
+                    : "text-gray-800 hover:text-blue-600"
+                }`}
+              >
+                {item}
+              </Link>
+            );
+          })}
 
-        {!token ? (
-          <>
-            <Link
-              to="/login"
-              onClick={() => setIsOpen(false)}
-              className="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-black font-semibold shadow-md transform transition-all hover:scale-110 hover:rotate-3 motion-safe:animate-bounce hover:shadow-xl"
-            >
-              Login
-            </Link>
-            <Link
-              to="http://localhost:5173/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white font-semibold shadow-md transform transition-all hover:scale-110 hover:rotate-3 motion-safe:animate-bounce hover:shadow-xl"
-            >
-              Seller
-            </Link>
-          </>
-        ) : (
-          <button
-            onClick={() => {
-              logout();
-              setIsOpen(false);
-            }}
-            className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold shadow-md transform transition-all hover:scale-110 hover:rotate-3 motion-safe:animate-pulse hover:shadow-xl"
-          >
-            Logout
-          </button>
-        )}
-      </div>
-
-      {/* Tailwind custom animation for mobile slide-down */}
-      <style>{`
-        @keyframes slide-down {
-          0% { transform: translateY(-30px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide-down {
-          animation: slide-down 0.5s ease-out forwards;
-        }
-      `}</style>
+          {token ? (
+            <>
+              <button
+                onClick={() => {
+                  navigate("/profile");
+                  setIsOpen(false);
+                }}
+                className="w-40 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-md shadow-md hover:scale-105 transition"
+              >
+                <User size={18} /> Profile
+              </button>
+              <button
+                onClick={() => {
+                  logout();
+                  setIsOpen(false);
+                }}
+                className="w-40 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-md shadow-md hover:scale-105 transition"
+              >
+                <LogOut size={18} /> Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                onClick={() => setIsOpen(false)}
+                className="w-40 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-800 rounded-md shadow-md hover:scale-105 transition"
+              >
+                <LogIn size={18} /> Login
+              </Link>
+              <Link
+                to="https://artisanadmin.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-40 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-md shadow-md hover:scale-105 transition"
+              >
+                <Store size={18} /> Seller
+              </Link>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

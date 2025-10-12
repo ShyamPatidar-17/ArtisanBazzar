@@ -17,20 +17,17 @@ const Product = () => {
   const [color, setColor] = useState("");
   const [createdBy, setCreatedBy] = useState("");
 
-  // Fetch product data from context
-  const fetchProductData = () => {
+  // ✅ Fetch product data
+  useEffect(() => {
     const item = products.find((p) => p._id === productId);
     if (item) {
       setProductData(item);
-      setImage(item.image[0]);
+      setImage(item.image?.[0] || "");
       setCreatedBy(item.createdBy || "");
     }
-  };
-
-  useEffect(() => {
-    fetchProductData();
   }, [productId, products]);
 
+  // ✅ Add to cart logic
   const handleAddToCart = () => {
     if (!token) {
       toast.error("Please login to add items to your cart.");
@@ -53,7 +50,7 @@ const Product = () => {
     toast.success("Item added to cart!");
   };
 
-  // Show loading or not found
+  // ✅ Show loading state
   if (!productData) {
     return (
       <div className="flex justify-center items-center min-h-[70vh] text-gray-600 text-lg">
@@ -63,15 +60,17 @@ const Product = () => {
   }
 
   return (
-    <div className="bg-amber-50 min-h-screen pt-14 px-4 sm:px-8 pb-16">
-      {/* Title Section */}
+    <div className="bg-amber-50 min-h-screen pt-14 px-4 sm:px-8 pb-16 overflow-x-hidden">
+      {/* Toast */}
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} />
+
+      {/* Title */}
       <div className="text-center text-3xl py-2 text-orange-700 font-bold">
         <Title text1={productData.name} text2={"DETAILS"} />
       </div>
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} />
 
       {/* Breadcrumb */}
-      <div className="text-gray-600 text-sm mb-6">
+      <div className="text-gray-600 text-sm mb-6 text-center sm:text-left">
         <Link to="/" className="hover:text-orange-600">Home</Link> /{" "}
         <Link to={`/category/${productData.category}`} className="hover:text-orange-600">
           {productData.category}
@@ -79,11 +78,11 @@ const Product = () => {
         / <span className="text-orange-700">{productData.name}</span>
       </div>
 
-      {/* Product Section */}
-      <div className="flex flex-col lg:flex-row gap-12 justify-center items-start">
-        {/* Image Gallery */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-4">
-          {/* Thumbnail list */}
+      {/* ✅ Product Section */}
+      <div className="flex flex-col lg:flex-row gap-12 justify-center items-start relative z-10">
+        {/* Left: Image Gallery */}
+        <div className="flex-1 lg:w-1/2 flex flex-col lg:flex-row gap-4 items-start relative z-10">
+          {/* Thumbnails */}
           <div className="flex lg:flex-col gap-3 w-full lg:w-[100px] overflow-x-auto lg:overflow-y-auto">
             {productData.image.map((item, index) => (
               <img
@@ -91,31 +90,30 @@ const Product = () => {
                 src={item}
                 key={index}
                 alt="thumbnail"
-                className={`w-24 h-24 object-cover rounded-md cursor-pointer border transition-all duration-300 transform hover:scale-105
-                  ${
-                    item === image
-                      ? "border-2 border-orange-500 shadow-lg scale-110"
-                      : "border-gray-300 hover:border-orange-400"
-                  }`}
+                className={`w-24 h-24 object-cover rounded-md cursor-pointer border transition-all duration-300 transform hover:scale-105 ${
+                  item === image
+                    ? "border-2 border-orange-500 shadow-lg scale-110"
+                    : "border-gray-300 hover:border-orange-400"
+                }`}
               />
             ))}
           </div>
 
-          {/* Main image */}
-          <div className="flex-1 bg-white rounded-xl shadow-md p-4">
+          {/* Main Image */}
+          <div className="flex-1 bg-white rounded-xl shadow-md p-4 relative z-10">
             <img
               src={image}
-              alt="product"
+              alt={productData.name}
               className="w-full max-h-[600px] object-contain rounded-lg transition-all duration-300 hover:scale-[1.02]"
             />
           </div>
         </div>
 
-        {/* Product Info */}
-        <div className="flex-1 bg-white shadow-md p-6 rounded-xl">
+        {/* Right: Product Info */}
+        <div className="flex-1 lg:w-1/2 bg-white shadow-md p-6 rounded-xl relative z-10">
           <h1 className="font-semibold text-2xl text-gray-800 mb-2">{productData.name}</h1>
 
-          {/* Price Section */}
+          {/* Price */}
           <div className="mt-3 flex items-center gap-3">
             <p className="text-3xl font-medium text-orange-600">
               {currency} {productData.discountPrice || productData.price}
@@ -127,21 +125,16 @@ const Product = () => {
             )}
           </div>
 
+          {/* Description */}
           <p className="mt-4 text-gray-600 leading-relaxed md:w-4/5">
             {productData.description}
           </p>
 
-          {/* Extra Info */}
+          {/* Product Details */}
           <div className="mt-6 text-sm text-gray-700 space-y-1">
-            <p>
-              <b>Material:</b> {productData.material || "N/A"}
-            </p>
-            <p>
-              <b>Region:</b> {productData.region || "N/A"}
-            </p>
-            <p>
-              <b>Shop Name:</b> {productData.artisan}
-            </p>
+            <p><b>Material:</b> {productData.material || "N/A"}</p>
+            <p><b>Region:</b> {productData.region || "N/A"}</p>
+            <p><b>Shop Name:</b> {productData.artisan}</p>
             <p>
               <b>Stock:</b>{" "}
               {productData.stock > 0 ? (
@@ -155,7 +148,7 @@ const Product = () => {
             )}
           </div>
 
-          {/* Size Selection */}
+          {/* Sizes */}
           {productData.sizes?.length > 0 && (
             <div className="flex flex-col gap-4 my-6">
               <p className="font-medium text-gray-700">Select Size</p>
@@ -164,12 +157,11 @@ const Product = () => {
                   <button
                     key={index}
                     onClick={() => setSize(item)}
-                    className={`border py-2 px-4 rounded-md transition-all duration-200 
-                      ${
-                        item === size
-                          ? "bg-orange-500 text-white border-orange-600"
-                          : "bg-gray-100 hover:bg-gray-200 border-gray-300"
-                      }`}
+                    className={`border py-2 px-4 rounded-md transition-all duration-200 ${
+                      item === size
+                        ? "bg-orange-500 text-white border-orange-600"
+                        : "bg-gray-100 hover:bg-gray-200 border-gray-300"
+                    }`}
                   >
                     {item}
                   </button>
@@ -183,7 +175,7 @@ const Product = () => {
             </div>
           )}
 
-          {/* Color Selection */}
+          {/* Colors */}
           {productData.colors?.length > 0 && (
             <div className="flex flex-col gap-4 my-6">
               <p className="font-medium text-gray-700">Select Color</p>
@@ -192,12 +184,11 @@ const Product = () => {
                   <button
                     key={index}
                     onClick={() => setColor(c)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all duration-200 
-                      ${
-                        c === color
-                          ? "border-4 border-orange-500 scale-110"
-                          : "border-gray-300 hover:scale-105"
-                      }`}
+                    className={`w-8 h-8 rounded-full border-2 transition-all duration-200 ${
+                      c === color
+                        ? "border-4 border-orange-500 scale-110"
+                        : "border-gray-300 hover:scale-105"
+                    }`}
                     style={{ backgroundColor: c.toLowerCase() }}
                   />
                 ))}
@@ -210,16 +201,15 @@ const Product = () => {
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/* Buttons */}
           <div className="mt-8 flex flex-wrap gap-4">
             <button
               disabled={productData.stock <= 0}
-              className={`px-8 py-3 text-sm text-white rounded-lg transition-all duration-200 
-                ${
-                  productData.stock > 0
-                    ? "bg-black hover:bg-gray-800 active:bg-gray-700"
-                    : "bg-gray-400 cursor-not-allowed"
-                }`}
+              className={`px-8 py-3 text-sm text-white rounded-lg transition-all duration-200 ${
+                productData.stock > 0
+                  ? "bg-black hover:bg-gray-800 active:bg-gray-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              }`}
               onClick={handleAddToCart}
             >
               {productData.stock > 0 ? "Add to Cart" : "Out of Stock"}
@@ -236,13 +226,13 @@ const Product = () => {
         </div>
       </div>
 
-      {/* Review Section */}
-      <div className="mt-16 bg-white shadow-md p-8 rounded-xl">
+      {/* ✅ Review Section */}
+      <div className="mt-16 bg-white shadow-md p-8 rounded-xl relative z-0">
         <Review productId={productId} token={token} />
       </div>
 
-      {/* Related Products */}
-      <div className="mt-12">
+      {/* ✅ Related Products (no overlap now) */}
+      <div className="mt-12 relative z-0">
         <RelatedProducts
           category={productData.category}
           subCategory={productData.subCategory}

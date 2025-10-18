@@ -4,6 +4,7 @@ import productModel from "../models/productModel.js";
 import userModel from "../models/userModel.js";
 import { v2 as cloudinary } from "cloudinary";
 import jwt from "jsonwebtoken";
+import streamifier from "streamifier";
 
 // 🔐 Function to extract user ID from token
 const getUserIdFromToken = (req) => {
@@ -15,33 +16,36 @@ const getUserIdFromToken = (req) => {
   return decoded.id;
 };
 
+// Helper function to upload buffer to Cloudinary
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "artisan-products", resource_type: "image" },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+};
+
 // ✅ ADD PRODUCT
 export const addProduct = async (req, res) => {
   try {
     const {
-      name,
-      price,
-      description,
-      sizes,
-      colors,
-      bestseller,
-      featured,
-      category,
-      subCategory,
-      discountPrice,
-      material,
-      region,
-      stock,
+      name, price, description, sizes, colors,
+      bestseller, featured, category, subCategory,
+      discountPrice, material, region, stock
     } = req.body;
 
-    if (!name || !price || !description || !category || !subCategory) {
+    if (!name || !price || !description || !category || !subCategory)
       return res.status(400).json({ success: false, message: "Missing required fields" });
-    }
 
     const parsedSizes = sizes ? JSON.parse(sizes) : [];
     const parsedColors = colors ? JSON.parse(colors) : [];
 
-    // Handle image uploads
+    // Collect uploaded images
     const files = [
       ...(req.files?.image1 || []),
       ...(req.files?.image2 || []),
@@ -49,12 +53,7 @@ export const addProduct = async (req, res) => {
       ...(req.files?.image4 || []),
     ];
 
-    const imageUrls = await Promise.all(
-      files.map(async (file) => {
-        const result = await cloudinary.uploader.upload(file.path, { resource_type: "image" });
-        return result.secure_url;
-      })
-    );
+    const imageUrls = await Promise.all(files.map(file => uploadToCloudinary(file.buffer)));
 
     const userId = getUserIdFromToken(req);
     const user = await userModel.findById(userId);
@@ -88,6 +87,7 @@ export const addProduct = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 // ✅ LIST ALL PRODUCTS
 export const listProduct = async (req, res) => {
   try {
@@ -140,14 +140,12 @@ export const editProduct = async (req, res) => {
     const { id } = req.params;
     let {
       name, price, description, sizes, colors, bestseller, featured,
-      category, subCategory, discountPrice, material, region, stock, artisan,
+      category, subCategory, discountPrice, material, region, stock, artisan
     } = req.body;
 
-    // Parse arrays
     if (sizes) sizes = typeof sizes === "string" ? JSON.parse(sizes) : sizes;
     if (colors) colors = typeof colors === "string" ? JSON.parse(colors) : colors;
 
-    // ✅ Collect new images if provided
     const files = [
       ...(req.files?.image1 || []),
       ...(req.files?.image2 || []),
@@ -157,43 +155,45 @@ export const editProduct = async (req, res) => {
 
     let imageUrls = [];
     if (files.length > 0) {
-      imageUrls = await Promise.all(
-        files.map(async (file) => {
-          const result = await cloudinary.uploader.upload(file.path, { resource_type: "image" });
-          return result.secure_url;
-        })
-      );
+      imageUrls = await Promise.all(files.map(file => uploadToCloudinary(file.buffer)));
     }
 
     const updatedFields = {
       name,
-      price: Number(price),
+      price: price ? Number(price) : undefined,
       description,
       sizes,
       colors,
-      bestseller: String(bestseller).toLowerCase() === "true",
-      featured: String(featured).toLowerCase() === "true",
+      bestseller: bestseller !== undefined ? String(bestseller).toLowerCase() === "true" : undefined,
+      featured: featured !== undefined ? String(featured).toLowerCase() === "true" : undefined,
       category,
       subCategory,
       discountPrice: discountPrice ? Number(discountPrice) : undefined,
       material,
       region,
-      stock: stock ? Number(stock) : 0,
+      stock: stock ? Number(stock) : undefined,
       artisan,
     };
 
     if (imageUrls.length > 0) updatedFields.image = imageUrls;
 
-    Object.keys(updatedFields).forEach((key) => updatedFields[key] === undefined && delete updatedFields[key]);
+    // Remove undefined fields
+    Object.keys(updatedFields).forEach(key => {
+      if (updatedFields[key] === undefined) delete updatedFields[key];
+    });
 
-    const updatedProduct = await productModel.findByIdAndUpdate(id, { $set: updatedFields }, { new: true });
+    const updatedProduct = await productModel.findByIdAndUpdate(
+      id,
+      { $set: updatedFields },
+      { new: true }
+    );
 
     if (!updatedProduct) return res.status(404).json({ success: false, message: "Product not found" });
 
     res.json({ success: true, message: "Product updated successfully", product: updatedProduct });
   } catch (error) {
     console.error("Edit Product Error:", error);
-    res.status(500).json({ success: false, message: "Failed to edit product" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

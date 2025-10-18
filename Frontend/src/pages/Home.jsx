@@ -8,10 +8,12 @@ import Featured from "../components/Featured";
 import Choose from "../components/Choose";
 import Policy from "../components/Policy";
 import Newsletter from "../components/Newsletter";
+import Recommendations from "../components/Recommendations";
+
 
 // Destructuring assets if needed in child components
 const { hero, pottery, textiles, jewelry, woodwork, painting, handicraft, newsletter: newsletterImg } = assets;
-
+ const userId = localStorage.getItem("userId");
 const Home = () => {
   return (
     <div className="min-h-screen bg-orange-50 flex flex-col items-center text-center">
@@ -20,7 +22,9 @@ const Home = () => {
 
       {/* Page Sections */}
       <Hero />
-      <Featured />
+     
+
+      {/* <Recommendations userId={userId} /> */}
       <Choose />
       <Policy />
       <Newsletter />

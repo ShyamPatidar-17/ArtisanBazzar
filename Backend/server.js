@@ -16,6 +16,8 @@ import userRouter from './routes/userRoute.js';
 import sellerRouter from './routes/sellerRoutes.js';
 import reviewRouter from './routes/reviewRoute.js';
 import messageRouter from './routes/messageRoute.js';
+import recRoute from './routes/recommendations.js';
+
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -47,6 +49,7 @@ app.use('/api/order', orderRouter);
 app.use('/api/sellers', sellerRouter);
 app.use('/api/review', reviewRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/recommendations', recRoute);
 
 
 const server = http.createServer(app);

@@ -22,6 +22,7 @@ import UserAuth from "./pages/UserAuth";
 import SellerAuth from "./pages/SellerAuth";
 import Sellers from "./pages/Seller";
 import Chat from "./pages/Chat";
+import Recommendations from './components/Recommendations';
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 export const currency = "₹";
@@ -31,10 +32,11 @@ function ChatWrapper() {
   const userId = localStorage.getItem("userId");
   return <Chat userId={userId} otherId={otherId} />;
 }
+ export const userId = localStorage.getItem("userId");
 
 function App() {
   const location = useLocation();
-
+ const userId = localStorage.getItem("userId");
   // Hide navbar on login/signup pages
   const hideNavbarRoutes = ["/login", "/seller/login"];
   const hideNavbar = hideNavbarRoutes.includes(location.pathname);
@@ -43,7 +45,6 @@ function App() {
     <div className="min-h-screen flex flex-col">
       {/* ✅ Hide Navbar on login/signup routes */}
       {!hideNavbar && <Navbar />}
-
       <div className="flex-grow">
         <Routes>
           {/* Authentication */}
@@ -70,6 +71,11 @@ function App() {
 
           {/* Chat */}
           <Route path="/chat/:otherId" element={<ChatWrapper />} />
+
+          {/*recommendation */}
+
+          {/* <Route path="/recommendations" element={<Recommendations userId={userId} />} /> */}
+
 
           {/* Sellers */}
           <Route path="/sellers" element={<Sellers />} />

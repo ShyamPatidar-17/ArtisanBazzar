@@ -92,6 +92,8 @@ const Add = () => {
         }
       );
 
+      console.log(response)
+
 
       if (response.data.success) {
         toast.success("Product added successfully!");

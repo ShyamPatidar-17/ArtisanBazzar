@@ -12,7 +12,7 @@ const orderSchema = new mongoose.Schema({
       status: {
         type: String,
         default: 'Order Placed',
-        enum: ['Order Placed', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
+        enum: ['Order Placed', 'Processing', 'Shipped', 'Delivered', 'Cancelled','Returned','Replacement']
       },
       createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true } //sellerid
     }

@@ -17,6 +17,7 @@ import sellerRouter from './routes/sellerRoutes.js';
 import reviewRouter from './routes/reviewRoute.js';
 import messageRouter from './routes/messageRoute.js';
 import recRoute from './routes/recommendations.js';
+import chatbotRoute from './routes/chatbotRoute.js'
 
 
 const app = express();
@@ -25,23 +26,23 @@ const port = process.env.PORT || 4000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Connect DB + Cloudinary
+
 connectDB();
 connectCloudinary();
 
-// ✅ Setup CORS
+
 const allowedOrigins = ['https://artisan-tawny.vercel.app', 'https://artisanadmin.vercel.app','http://localhost:5174','http://localhost:5173'];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(express.json());
 
-// ✅ Serve uploads folder
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads', express.static('uploads'));
 
 app.get('/', (req, res) => res.send('Home ROUTE'));
 
-// ✅ Mount routes
+
 app.use('/api/users', userRouter);
 app.use('/api/products', productRouter);
 app.use('/api/cart', cartRouter);
@@ -50,10 +51,10 @@ app.use('/api/sellers', sellerRouter);
 app.use('/api/review', reviewRouter);
 app.use('/api/messages', messageRouter);
 app.use('/api/recommendations', recRoute);
+app.use('/api/chat',chatbotRoute)
 
 
 const server = http.createServer(app);
-
 
 const io = new Server(server, {
   cors: { origin: allowedOrigins, credentials: true },
@@ -79,5 +80,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// ✅ Start server
+
 server.listen(port, () => console.log(`✅ Backend + Socket.IO running on http://localhost:${port}`));
+
+console.log("HEllo")

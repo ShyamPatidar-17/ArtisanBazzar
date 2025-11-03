@@ -23,6 +23,7 @@ import SellerAuth from "./pages/SellerAuth";
 import Sellers from "./pages/Seller";
 import Chat from "./pages/Chat";
 import Recommendations from './components/Recommendations';
+import Chatbot from "./components/Chatbot";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 export const currency = "₹";
@@ -37,21 +38,20 @@ function ChatWrapper() {
 function App() {
   const location = useLocation();
  const userId = localStorage.getItem("userId");
-  // Hide navbar on login/signup pages
+
   const hideNavbarRoutes = ["/login", "/seller/login"];
   const hideNavbar = hideNavbarRoutes.includes(location.pathname);
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* ✅ Hide Navbar on login/signup routes */}
+   
       {!hideNavbar && <Navbar />}
       <div className="flex-grow">
         <Routes>
-          {/* Authentication */}
+          
           <Route path="/login" element={<UserAuth />} />
           <Route path="/seller/login" element={<SellerAuth />} />
-
-          {/* Main Pages */}
+        
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Collection />} />
           <Route path="/shop/:categorySlug" element={<Collection />} />
@@ -68,24 +68,21 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/profile/change-password" element={<ChangePassword />} />
-
           {/* Chat */}
           <Route path="/chat/:otherId" element={<ChatWrapper />} />
-
           {/*recommendation */}
-
-          {/* <Route path="/recommendations" element={<Recommendations userId={userId} />} /> */}
-
-
-          {/* Sellers */}
+          <Route path="/recommendations" element={<Recommendations userId={userId} />} />
+          {/*Seller */}
           <Route path="/sellers" element={<Sellers />} />
         </Routes>
       </div>
 
-      {/* ✅ Hide Footer also on login/signup for clean layout */}
+    
       {!hideNavbar && <Footer />}
 
       <ToastContainer />
+
+      <Chatbot/>
     </div>
   );
 }

@@ -10,12 +10,11 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const { search } = useLocation();
 
-  // Helper to get proper image URL
-  const getImageUrl = (item) => {
-    if (!item.image || item.image.length === 0) return "https://via.placeholder.com/80";
-    const firstImage = Array.isArray(item.image) ? item.image[0] : item.image;
-   return firstImage || "https://via.placeholder.com/80";
-  };
+  // 🔹 Replacement modal states
+  const [showReplaceModal, setShowReplaceModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [selectedItemIndex, setSelectedItemIndex] = useState(null);
+  const [selectedReason, setSelectedReason] = useState("");
 
   // Load user orders
   const loadOrderData = async () => {
@@ -29,15 +28,25 @@ const Orders = () => {
 
       if (response.data.success) {
         const updatedOrders = response.data.orders.map((order) => {
+          const paymentStatus =
+            order.paymentMethod &&
+            order.paymentMethod.toLowerCase().includes("stripe")
+              ? "Paid"
+              : order.status || "Pending";
+
           const itemsWithIndex = order.items.map((item, idx) => ({
             ...item,
             itemIndex: idx,
             status: item.status || "Order Placed",
-            image: getImageUrl(item), // convert image path here
+            image:
+              item.image && item.image.length > 0
+                ? item.image
+                : "https://via.placeholder.com/80",
           }));
-          return { ...order, items: itemsWithIndex };
+
+          return { ...order, items: itemsWithIndex, status: paymentStatus };
         });
-        setOrders(updatedOrders.reverse());
+        setOrders(updatedOrders);
       }
     } catch (error) {
       console.error(error);
@@ -45,7 +54,7 @@ const Orders = () => {
     }
   };
 
-  // Cancel item (user/admin)
+  // Cancel order item
   const cancelOrderItem = async (orderId, itemIndex) => {
     try {
       const res = await axios.post(
@@ -56,18 +65,7 @@ const Orders = () => {
 
       if (res.data.success) {
         toast.success("Item cancelled successfully");
-        setOrders((prevOrders) =>
-          prevOrders.map((order) =>
-            order._id === orderId
-              ? {
-                  ...order,
-                  items: order.items.map((item, idx) =>
-                    idx === itemIndex ? { ...item, status: "Cancelled" } : item
-                  ),
-                }
-              : order
-          )
-        );
+        updateItemStatus(orderId, itemIndex, "Cancelled");
       } else {
         toast.error(res.data.message || "Cancellation failed");
       }
@@ -77,7 +75,85 @@ const Orders = () => {
     }
   };
 
-  // Stripe payment verification
+  // Return order item
+  const returnOrderItem = async (orderId, itemIndex) => {
+    try {
+      const res = await axios.post(
+        `${backendUrl}/api/order/status`,
+        { orderId, itemIndex, status: "Returned" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        toast.success("Item return request placed successfully");
+        updateItemStatus(orderId, itemIndex, "Returned");
+      } else {
+        toast.error(res.data.message || "Return request failed");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Server error while returning");
+    }
+  };
+
+  // 🔹 Open Replacement Modal
+  const openReplaceModal = (orderId, itemIndex) => {
+    setSelectedOrderId(orderId);
+    setSelectedItemIndex(itemIndex);
+    setShowReplaceModal(true);
+  };
+
+  // 🔹 Confirm replacement with selected reason
+  const confirmReplacement = async () => {
+    if (!selectedReason) {
+      toast.warning("Please select a reason!");
+      return;
+    }
+
+    try {
+      const res = await axios.post(
+        `${backendUrl}/api/order/status`,
+        {
+          orderId: selectedOrderId,
+          itemIndex: selectedItemIndex,
+          status: "Replacement",
+          reason: selectedReason,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        toast.success("Replacement request sent successfully");
+        updateItemStatus(selectedOrderId, selectedItemIndex, "Replacement Requested");
+      } else {
+        toast.error(res.data.message || "Replacement failed");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Server error while requesting replacement");
+    } finally {
+      setShowReplaceModal(false);
+      setSelectedReason("");
+    }
+  };
+
+  // Helper: update local state for status
+  const updateItemStatus = (orderId, itemIndex, newStatus) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order._id === orderId
+          ? {
+              ...order,
+              items: order.items.map((item, idx) =>
+                idx === itemIndex ? { ...item, status: newStatus } : item
+              ),
+            }
+          : order
+      )
+    );
+  };
+
+  // Verify payment & load orders
   useEffect(() => {
     const params = new URLSearchParams(search);
     const payment = params.get("payment");
@@ -91,7 +167,7 @@ const Orders = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         )
         .then((res) => {
-          if (res.data.success) toast.success("✅ Payment verified successfully!");
+          if (res.data.success) toast.success("Payment verified successfully!");
           loadOrderData();
         })
         .catch(() => toast.error("Payment verification failed"));
@@ -100,7 +176,6 @@ const Orders = () => {
     }
   }, [search]);
 
-  // Status badge colors
   const getStatusColor = (status) => {
     switch (status) {
       case "Order Placed":
@@ -108,18 +183,17 @@ const Orders = () => {
       case "Processing":
         return "bg-purple-100 text-purple-800";
       case "Shipped":
-        return "bg-yellow-100 text-yellow-800";
       case "Out for Delivery":
-        return "bg-orange-100 text-orange-800";
+        return "bg-yellow-100 text-yellow-800";
       case "Delivered":
+      case "Paid":
         return "bg-green-100 text-green-800";
       case "Cancelled":
         return "bg-red-100 text-red-800";
-      case "Paid":
-      case "Done":
-        return "bg-green-100 text-green-800";
-      case "Pending":
-        return "bg-gray-200 text-gray-700";
+      case "Returned":
+        return "bg-indigo-100 text-indigo-800";
+      case "Replacement Requested":
+        return "bg-pink-100 text-pink-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -140,7 +214,6 @@ const Orders = () => {
               key={order._id}
               className="bg-white rounded-xl shadow-md p-4 space-y-4"
             >
-              {/* Order Header */}
               <div className="flex justify-between items-center border-b pb-2">
                 <p className="text-lg font-semibold text-gray-700">
                   Order ID:{" "}
@@ -151,44 +224,44 @@ const Orders = () => {
                 </p>
               </div>
 
-              {/* Order Items */}
-              {order.items && order.items.length > 0 ? (
-                order.items.map((item) => (
-                  <div
-                    key={item.itemIndex}
-                    className="flex flex-col sm:flex-row items-center gap-4 border-b last:border-b-0 pb-2"
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-20 h-20 sm:w-28 sm:h-28 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <p className="text-lg font-semibold text-red-900">
-                          {item.name}
-                        </p>
-                        <div className="flex items-center gap-3 mt-1 flex-wrap">
-                          <span className="text-md font-medium">
-                            {currency} {item.price} × {item.quantity}
-                          </span>
-                          <span className="px-2 py-1 border border-gray-300 rounded-md bg-amber-100">
-                            {item.size}
-                          </span>
-                          <span
-                            className={`px-2 py-1 rounded-md ${getStatusColor(
-                              item.status
-                            )}`}
-                          >
-                            {item.status}
-                          </span>
-                        </div>
+              {order.items.map((item) => (
+                <div
+                  key={item.itemIndex}
+                  className="flex flex-col sm:flex-row items-center gap-4 border-b last:border-b-0 pb-2"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-20 h-20 sm:w-28 sm:h-28 object-cover rounded-lg"
+                    />
+                    <div className="flex-1">
+                      <p className="text-lg font-semibold text-red-900">
+                        {item.name}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <span className="text-md font-medium">
+                          {currency} {item.price} × {item.quantity}
+                        </span>
+                        <span className="px-2 py-1 border border-gray-300 rounded-md bg-amber-100">
+                          {item.size}
+                        </span>
+                        <span
+                          className={`px-2 py-1 rounded-md ${getStatusColor(
+                            item.status
+                          )}`}
+                        >
+                          {item.status}
+                        </span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Cancel button */}
+                  <div className="flex gap-2">
                     {item.status !== "Cancelled" &&
-                      item.status !== "Delivered" && (
+                      item.status !== "Delivered" &&
+                      item.status !== "Returned" &&
+                      item.status !== "Replacement Requested" && (
                         <button
                           onClick={() =>
                             cancelOrderItem(order._id, item.itemIndex)
@@ -198,13 +271,31 @@ const Orders = () => {
                           Cancel
                         </button>
                       )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-sm">No items in this order</p>
-              )}
 
-              {/* Order Footer */}
+                    {item.status === "Delivered" && (
+                      <>
+                        <button
+                          onClick={() =>
+                            returnOrderItem(order._id, item.itemIndex)
+                          }
+                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                        >
+                          Return
+                        </button>
+                        <button
+                          onClick={() =>
+                            openReplaceModal(order._id, item.itemIndex)
+                          }
+                          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                        >
+                          Replace
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+
               <div className="pt-2 flex justify-between text-sm text-gray-600">
                 <p>
                   Payment:{" "}
@@ -213,78 +304,70 @@ const Orders = () => {
 
                 <div className="font-semibold flex flex-wrap gap-2 items-center">
                   Status:{" "}
-                  {(() => {
-                    const deliveredCount = order.items.filter(
-                      (i) => i.status === "Delivered"
-                    ).length;
-                    const cancelledCount = order.items.filter(
-                      (i) => i.status === "Cancelled"
-                    ).length;
-                    const pendingCount = order.items.filter(
-                      (i) => i.status === "Order Placed" || i.status === "Pending"
-                    ).length;
-                    const total = order.items.length;
-
-                    if (deliveredCount === total) {
-                      return (
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                            "Paid"
-                          )}`}
-                        >
-                          Paid
-                        </span>
-                      );
-                    }
-
-                    if (cancelledCount === total) {
-                      return (
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                            "Cancelled"
-                          )}`}
-                        >
-                          Cancelled
-                        </span>
-                      );
-                    }
-
-                    return (
-                      <div className="flex gap-2">
-                        {deliveredCount > 0 && (
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                              "Paid"
-                            )}`}
-                          >
-                            {deliveredCount} Paid
-                          </span>
-                        )}
-                        {cancelledCount > 0 && (
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                              "Cancelled"
-                            )}`}
-                          >
-                            {cancelledCount} Cancelled
-                          </span>
-                        )}
-                        {pendingCount > 0 && (
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                              "Pending"
-                            )}`}
-                          >
-                            {pendingCount} Pending
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
+                      order.status
+                    )}`}
+                  >
+                    {order.status}
+                  </span>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 🔹 Replacement Reason Modal */}
+      {showReplaceModal && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-xl p-6 shadow-lg w-80">
+            <h3 className="text-lg font-semibold text-gray-700 mb-3">
+              Select Replacement Reason
+            </h3>
+            <div className="space-y-2">
+              {[
+                "Damaged Item",
+                "Wrong Size/Color",
+                "Defective Product",
+                "Missing Parts",
+                "Received Wrong Item",
+                "Other",
+              ].map((reason) => (
+                <label
+                  key={reason}
+                  className="flex items-center gap-2 text-gray-700 cursor-pointer"
+                >
+                  <input
+                    type="radio"
+                    name="replacementReason"
+                    value={reason}
+                    checked={selectedReason === reason}
+                    onChange={(e) => setSelectedReason(e.target.value)}
+                  />
+                  {reason}
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowReplaceModal(false);
+                  setSelectedReason("");
+                }}
+                className="px-3 py-1 rounded bg-gray-300 hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReplacement}
+                className="px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

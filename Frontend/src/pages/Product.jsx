@@ -27,30 +27,39 @@ const Product = () => {
     }
   }, [productId, products]);
 
-  // ✅ Add to cart logic
-  const handleAddToCart = () => {
-    if (!token) {
-      toast.error("Please login to add items to your cart.");
-      return;
-    }
-    if (productData.stock <= 0) {
-      toast.error("Sorry, this product is out of stock.");
-      return;
-    }
-    if (productData.sizes?.length > 0 && !size) {
-      toast.error("Please select a size before adding to cart.");
-      return;
-    }
-    if (productData.colors?.length > 0 && !color) {
-      toast.error("Please select a color before adding to cart.");
-      return;
-    }
+  
+const handleAddToCart = () => {
+  if (!token) {
+    toast.error("Please login to add items to your cart.");
+    return;
+  }
 
-    addToCart(productData._id, size, color, createdBy);
-    toast.success("Item added to cart!");
-  };
+  if (productData.stock <= 0) {
+    toast.error("Sorry, this product is out of stock.");
+    return;
+  }
 
-  // ✅ Show loading state
+
+  if (productData.sizes?.length > 0 && !size) {
+    toast.error("Please select a size before adding to cart.");
+    return;
+  }
+
+  
+  if (productData.colors?.length > 0 && !color) {
+    toast.error("Please select a color before adding to cart.");
+    return;
+  }
+
+ 
+  const selectedSize = productData.sizes?.length > 0 ? size : null;
+  const selectedColor = productData.colors?.length > 0 ? color : null;
+
+  addToCart(productData._id, selectedSize, selectedColor, createdBy);
+  toast.success("Item added to cart!");
+};
+
+  
   if (!productData) {
     return (
       <div className="flex justify-center items-center min-h-[70vh] text-gray-600 text-lg">

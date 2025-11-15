@@ -6,8 +6,6 @@ import adminAuth from "../middleware/adminAuth.js"
 const router = express.Router();
 
 
-//Find user
-
 
 // USER ROUTES
 router.post("/register", register("user"));

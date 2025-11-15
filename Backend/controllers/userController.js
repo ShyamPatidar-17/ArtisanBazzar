@@ -109,9 +109,6 @@ const register = (role) => {
 
 // ------------------ PROFILE ------------------
 const profile = async (req, res) => {
-
-  console.log("Helloo");
-
   try {
     console.log("Profile request userId:", req.userId);
 
@@ -231,7 +228,7 @@ const getSellerById = async (req, res) => {
 };
 
 
- const allseller = async (req, res) => {
+const allseller = async (req, res) => {
   try {
     const sellers = await userModel
       .find({ role: "seller" })
@@ -248,4 +245,4 @@ const getSellerById = async (req, res) => {
 
 
 
-export { login, register, profile, getUserById, updateProfile, changePassword, getSellerById,allseller };
+export { login, register, profile, getUserById, updateProfile, changePassword, getSellerById, allseller };

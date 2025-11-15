@@ -26,6 +26,8 @@ const Orders = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+       console.log(response)
+
       if (response.data.success) {
         const updatedOrders = response.data.orders.map((order) => {
           const paymentStatus =
@@ -209,112 +211,134 @@ const Orders = () => {
         <p className="text-center text-gray-600 mt-20">No orders yet.</p>
       ) : (
         <div className="space-y-6">
-          {orders.map((order) => (
-            <div
-              key={order._id}
-              className="bg-white rounded-xl shadow-md p-4 space-y-4"
-            >
-              <div className="flex justify-between items-center border-b pb-2">
-                <p className="text-lg font-semibold text-gray-700">
-                  Order ID:{" "}
-                  <span className="text-red-900 font-bold">{order._id}</span>
-                </p>
-                <p className="text-sm text-gray-500">
-                  {new Date(order.date).toLocaleString()}
-                </p>
-              </div>
+          {orders.map((order) => {
+            const totalAmount = order.items.reduce(
+              (acc, item) => acc + item.price * item.quantity,
+              0
+            );
 
-              {order.items.map((item) => (
-                <div
-                  key={item.itemIndex}
-                  className="flex flex-col sm:flex-row items-center gap-4 border-b last:border-b-0 pb-2"
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-20 h-20 sm:w-28 sm:h-28 object-cover rounded-lg"
-                    />
-                    <div className="flex-1">
-                      <p className="text-lg font-semibold text-red-900">
-                        {item.name}
-                      </p>
-                      <div className="flex items-center gap-3 mt-1 flex-wrap">
-                        <span className="text-md font-medium">
-                          {currency} {item.price} × {item.quantity}
-                        </span>
-                        <span className="px-2 py-1 border border-gray-300 rounded-md bg-amber-100">
-                          {item.size}
-                        </span>
-                        <span
-                          className={`px-2 py-1 rounded-md ${getStatusColor(
-                            item.status
-                          )}`}
-                        >
-                          {item.status}
-                        </span>
+            return (
+              <div
+                key={order._id}
+                className="bg-white rounded-xl shadow-md p-4 space-y-4"
+              >
+
+                
+                {/* 🔹 Order Header with Total */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b pb-2 gap-2 sm:gap-0 text-center sm:text-left">
+                  <p className="text-lg font-semibold text-gray-700">
+                    Order ID:{" "}
+                    <span className="text-red-900 font-bold">{order._id}</span>
+                  </p>
+
+                  <p className="text-md font-bold text-green-700">
+                    Total: {currency} {totalAmount.toFixed(2)}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    {new Date(order.date).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* 🔹 Order Items */}
+                {order.items.map((item) => (
+                 
+                  <div
+                    key={item.itemIndex}
+                    className="flex flex-col sm:flex-row items-center gap-4 border-b last:border-b-0 pb-2"
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-20 h-20 sm:w-28 sm:h-28 object-cover rounded-lg"
+                      />
+                      <div className="flex-1">
+                        <p className="text-lg font-semibold text-red-900">
+                          {item.name}
+                        </p>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          <span className="text-md font-medium">
+                            {currency} {item.price} × {item.quantity}
+                          </span>
+
+                          {item.size && (
+                            <span className="px-2 py-1 border border-gray-300 rounded-md bg-amber-100">
+                              Size: {item.size}
+                            </span>
+                          )}
+
+                          <span
+                            className={`px-2 py-1 rounded-md ${getStatusColor(
+                              item.status
+                            )}`}
+                          >
+                            {item.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex gap-2">
-                    {item.status !== "Cancelled" &&
-                      item.status !== "Delivered" &&
-                      item.status !== "Returned" &&
-                      item.status !== "Replacement Requested" && (
-                        <button
-                          onClick={() =>
-                            cancelOrderItem(order._id, item.itemIndex)
-                          }
-                          className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                        >
-                          Cancel
-                        </button>
+                    <div className="flex gap-2">
+                      {item.status !== "Cancelled" &&
+                        item.status !== "Delivered" &&
+                        item.status !== "Returned" &&
+                        item.status !== "Replacement Requested" && (
+                          <button
+                            onClick={() =>
+                              cancelOrderItem(order._id, item.itemIndex)
+                            }
+                            className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                          >
+                            Cancel
+                          </button>
+                        )}
+
+                      {item.status === "Delivered" && (
+                        <>
+                          <button
+                            onClick={() =>
+                              returnOrderItem(order._id, item.itemIndex)
+                            }
+                            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                          >
+                            Return
+                          </button>
+                          <button
+                            onClick={() =>
+                              openReplaceModal(order._id, item.itemIndex)
+                            }
+                            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                          >
+                            Replace
+                          </button>
+                        </>
                       )}
-
-                    {item.status === "Delivered" && (
-                      <>
-                        <button
-                          onClick={() =>
-                            returnOrderItem(order._id, item.itemIndex)
-                          }
-                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                        >
-                          Return
-                        </button>
-                        <button
-                          onClick={() =>
-                            openReplaceModal(order._id, item.itemIndex)
-                          }
-                          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                        >
-                          Replace
-                        </button>
-                      </>
-                    )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
-              <div className="pt-2 flex justify-between text-sm text-gray-600">
-                <p>
-                  Payment:{" "}
-                  <span className="font-medium">{order.paymentMethod}</span>
-                </p>
+                {/* 🔹 Payment Info */}
+                <div className="pt-2 flex justify-between text-sm text-gray-600">
+                  <p>
+                    Payment:{" "}
+                    <span className="font-medium">{order.paymentMethod}</span>
+                  </p>
 
-                <div className="font-semibold flex flex-wrap gap-2 items-center">
-                  Status:{" "}
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                      order.status
-                    )}`}
-                  >
-                    {order.status}
-                  </span>
+                  <div className="font-semibold flex flex-wrap gap-2 items-center">
+                    Status:{" "}
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
+                        order.status
+                      )}`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

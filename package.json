@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "form-data": "^4.0.4",
+    "mailgun.js": "^12.1.1",
+    "nodemailer": "^7.0.10",
+    "resend": "^6.4.1"
+  }
+}

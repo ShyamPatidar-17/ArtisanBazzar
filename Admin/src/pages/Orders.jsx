@@ -9,6 +9,13 @@ const Orders = () => {
   const token = localStorage.getItem("sellerToken") || "";
   const sellerId = token ? jwtDecode(token).id : null;
 
+  // ✔ Universal Image Resolver (works for all paths)
+  const resolveImage = (img) => {
+    if (!img) return "";
+    if (img.startsWith("http")) return img;          // Already a full URL
+    return `${backendUrl}/${img}`;                   // Local backend upload
+  };
+
   const fetchOrders = async () => {
     if (!token) return;
     try {
@@ -44,7 +51,7 @@ const Orders = () => {
     fetchOrders();
   }, [token]);
 
-  // ✅ Distinct background colors for each status
+  // 🎨 Distinct background colors for order status
   const getStatusBg = (status) => {
     switch (status) {
       case 'Order Placed':
@@ -65,11 +72,14 @@ const Orders = () => {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">My Product Orders</h2>
+
       {orders.length === 0 ? (
         <p className="text-gray-500">No orders found.</p>
       ) : (
         orders.map((order) => (
           <div key={order._id} className="border rounded-md p-4 mb-6 shadow">
+            
+            {/* Top Section */}
             <div className="flex justify-between text-sm text-gray-600 mb-2">
               <span><strong>Order ID:</strong> {order._id}</span>
               <span><strong>Date:</strong> {new Date(order.date).toDateString()}</span>
@@ -83,7 +93,9 @@ const Orders = () => {
               <p><strong>Total:</strong> {currency} {order.amount}</p>
             </div>
 
+            {/* Product Items */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+
               {order.items
                 .filter(item => item.createdBy === sellerId)
                 .map((item, idx) => (
@@ -91,15 +103,21 @@ const Orders = () => {
                     key={idx}
                     className={`flex items-center gap-4 border rounded p-3 shadow-sm transition-all duration-300 ${getStatusBg(item.status)}`}
                   >
+
+                    {/* ✔ Working Image */}
                     <img
-                      src={item.image[0]}
+                      src={item.image}
                       alt={item.name}
                       className="w-16 h-16 object-cover rounded border"
                     />
+
                     <div className="text-sm w-full">
                       <p className="font-semibold">{item.name}</p>
-                      <p>Price: {currency} {item.price} | Qty: {item.quantity} | Size: {item.size}</p>
+                      <p>
+                        Price: {currency} {item.price} | Qty: {item.quantity} | Size: {item.size || "-"}
+                      </p>
 
+                      {/* Status Dropdown */}
                       <div className="mt-2">
                         <span className="font-medium">Status:</span>{' '}
                         <select
@@ -115,9 +133,11 @@ const Orders = () => {
                           ))}
                         </select>
                       </div>
+
                     </div>
                   </div>
                 ))}
+
             </div>
           </div>
         ))

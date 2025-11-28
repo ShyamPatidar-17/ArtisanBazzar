@@ -30,6 +30,22 @@ const getFullImageUrl = (imageArray) => {
   return `${base}/${firstImage}`;
 };
 
+
+const resolveImage = (imgArr) => {
+  if (!imgArr || imgArr.length === 0) return "";
+
+  const img = imgArr[0];
+
+  if (!img) return "";
+
+  // Already a full URL (Cloudinary)
+  if (img.startsWith("http")) return img;
+
+  // Local upload
+  return `${process.env.BACKEND_URL}/${img}`;
+};
+
+
 // ---------------- Build Items with Product Images ----------------
 const buildOrderItems = async (items) => {
   return await Promise.all(
@@ -323,17 +339,27 @@ export const userOrders = async (req, res) => {
 export const adminOrders = async (req, res) => {
   try {
     const sellerId = req.userId;
-    const orders = await orderModel.find({ "items.createdBy": sellerId });
-    const updated = orders.map(o => ({
-      ...o.toObject(),
-      items: o.items.map(i => ({ ...i.toObject(), image: getFullImageUrl(i.image) })),
+
+    const orders = await orderModel.find({
+      "items.createdBy": sellerId
+    });
+
+    const updated = orders.map(order => ({
+      ...order.toObject(),
+      items: order.items.map(item => ({
+        ...item.toObject(),
+        image: resolveImage(item.image),   
+      }))
     }));
+
     res.json({ success: true, orders: updated });
+
   } catch (err) {
     console.error("❌ Admin Orders Error:", err);
     res.json({ success: false, message: err.message });
   }
 };
+
 
 export const getMyOrders = async (req, res) => {
   try {
